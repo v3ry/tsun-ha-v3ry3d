@@ -1,0 +1,341 @@
+# 🎨 Exemples de cartes Lovelace pour TSUN Monitoring
+# Copiez-collez ces exemples dans votre tableau de bord Home Assistant
+
+# ========================================
+# 🔋 CARTE BATTERIE - Version Simple
+# ========================================
+type: vertical-stack
+cards:
+  # En-tête avec état de charge
+  - type: tile
+    entity: sensor.{station}_battery_soc
+    name: Batterie
+    icon: mdi:battery
+    color: green
+    show_entity_picture: false
+    vertical: false
+  
+  # Puissance et statut
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.{station}_battery_power
+        name: Puissance
+        icon: mdi:flash
+        color: blue
+      - type: tile
+        entity: sensor.{station}_battery_status
+        name: Statut
+        icon: mdi:battery-charging
+
+  # Charge/Décharge du jour
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.{station}_battery_charge_today
+        name: Charge Aujourd'hui
+        icon: mdi:battery-plus
+        color: green
+      - type: tile
+        entity: sensor.{station}_battery_discharge_today
+        name: Décharge Aujourd'hui
+        icon: mdi:battery-minus
+        color: orange
+
+# ========================================
+# 🔋 CARTE BATTERIE - Version Complète
+# ========================================
+type: vertical-stack
+cards:
+  # Titre principal
+  - type: markdown
+    content: |
+      # 🔋 Batterie TSUN
+      État de votre système de stockage d'énergie
+  
+  # État de charge avec jauge
+  - type: gauge
+    entity: sensor.{station}_battery_soc
+    name: État de charge
+    min: 0
+    max: 100
+    severity:
+      green: 60
+      yellow: 30
+      red: 0
+    needle: true
+  
+  # Puissance en temps réel
+  - type: entities
+    title: En temps réel
+    entities:
+      - entity: sensor.{station}_battery_power
+        name: Puissance
+        icon: mdi:lightning-bolt
+      - entity: sensor.{station}_battery_status
+        name: Statut
+        icon: mdi:battery-charging
+      - entity: sensor.{station}_use_power
+        name: Consommation maison
+        icon: mdi:home-lightning-bolt
+  
+  # Statistiques du jour
+  - type: entities
+    title: "📊 Statistiques du jour"
+    entities:
+      - entity: sensor.{station}_generation_value_daily
+        name: Production solaire
+        icon: mdi:solar-power
+      - entity: sensor.{station}_battery_charge_today
+        name: Charge batterie
+        icon: mdi:battery-plus
+      - entity: sensor.{station}_battery_discharge_today
+        name: Décharge batterie
+        icon: mdi:battery-minus
+      - type: section
+      - entity: sensor.{station}_battery_soc
+        name: État de charge actuel
+        icon: mdi:battery
+  
+  # Totaux
+  - type: horizontal-stack
+    cards:
+      - type: statistic
+        entity: sensor.{station}_battery_charge_total
+        name: Charge totale
+        icon: mdi:battery-arrow-up
+        stat_type: total_increasing
+      - type: statistic
+        entity: sensor.{station}_battery_discharge_total
+        name: Décharge totale
+        icon: mdi:battery-arrow-down
+        stat_type: total_increasing
+  
+  # Informations techniques
+  - type: entities
+    title: "⚙️ Caractéristiques"
+    entities:
+      - entity: sensor.{station}_battery_rated_capacity
+        name: Capacité nominale
+        icon: mdi:battery-high
+      - entity: sensor.{station}_battery_rated_power
+        name: Puissance nominale
+        icon: mdi:flash
+
+# ========================================
+# 🌞 CARTE PRODUCTION SOLAIRE
+# ========================================
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      # ☀️ Production Solaire
+  
+  # Puissance actuelle
+  - type: gauge
+    entity: sensor.{station}_generation_power
+    name: Production actuelle
+    min: 0
+    max: 5100
+    severity:
+      green: 2000
+      yellow: 500
+      red: 0
+    needle: true
+    unit: W
+  
+  # Production du jour/mois/année
+  - type: entities
+    title: "📈 Production"
+    entities:
+      - entity: sensor.{station}_generation_value_daily
+        name: Aujourd'hui
+        icon: mdi:weather-sunny
+      - entity: sensor.{station}_generation_month
+        name: Ce mois
+        icon: mdi:calendar-month
+      - entity: sensor.{station}_generation_year
+        name: Cette année
+        icon: mdi:calendar
+      - entity: sensor.{station}_generation_total
+        name: Total
+        icon: mdi:solar-power
+
+# ========================================
+# 📊 CARTE ÉNERGIE COMPLÈTE (Vue d'ensemble)
+# ========================================
+type: vertical-stack
+cards:
+  # En-tête
+  - type: markdown
+    content: |
+      # ⚡ Gestion d'Énergie
+      Vue d'ensemble de votre système
+  
+  # Flux d'énergie en temps réel
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.{station}_generation_power
+        name: Production
+        icon: mdi:solar-power
+        color: yellow
+      - type: tile
+        entity: sensor.{station}_battery_power
+        name: Batterie
+        icon: mdi:battery
+        color: green
+      - type: tile
+        entity: sensor.{station}_use_power
+        name: Consommation
+        icon: mdi:home-lightning-bolt
+        color: blue
+  
+  # État batterie
+  - type: tile
+    entity: sensor.{station}_battery_soc
+    name: État de charge
+    icon: mdi:battery
+    vertical: true
+  
+  # Production quotidienne
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.{station}_generation_value_daily
+        name: Production jour
+        icon: mdi:weather-sunny
+      - type: tile
+        entity: sensor.{station}_battery_charge_today
+        name: Charge batterie
+        icon: mdi:battery-plus
+      - type: tile
+        entity: sensor.{station}_battery_discharge_today
+        name: Décharge batterie
+        icon: mdi:battery-minus
+  
+  # Réseau
+  - type: entities
+    title: "🌐 Statut Système"
+    entities:
+      - entity: sensor.{station}_network_status
+        name: État réseau
+      - entity: sensor.{station}_power_system_type
+        name: Type système
+      - entity: sensor.{station}_installed_capacity
+        name: Capacité installée
+
+# ========================================
+# 📱 CARTE MINI (Pour mobile ou vue rapide)
+# ========================================
+type: vertical-stack
+cards:
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.{station}_battery_soc
+        icon: mdi:battery
+      - type: tile
+        entity: sensor.{station}_generation_power
+        icon: mdi:solar-power
+      - type: tile
+        entity: sensor.{station}_use_power
+        icon: mdi:home-lightning-bolt
+
+# ========================================
+# 📈 CARTE AVEC GRAPHIQUES (Nécessite HACS: mini-graph-card)
+# ========================================
+# Installez d'abord: https://github.com/kalkih/mini-graph-card
+type: vertical-stack
+cards:
+  # Graphique batterie
+  - type: custom:mini-graph-card
+    name: État de charge batterie
+    entities:
+      - entity: sensor.{station}_battery_soc
+        name: SOC
+        color: "#4caf50"
+    hours_to_show: 24
+    points_per_hour: 4
+    line_width: 3
+    font_size: 75
+    show:
+      labels: true
+      points: true
+      legend: false
+  
+  # Graphique production vs consommation
+  - type: custom:mini-graph-card
+    name: Production vs Consommation
+    entities:
+      - entity: sensor.{station}_generation_power
+        name: Production
+        color: "#ffc107"
+      - entity: sensor.{station}_use_power
+        name: Consommation
+        color: "#2196f3"
+      - entity: sensor.{station}_battery_power
+        name: Batterie
+        color: "#4caf50"
+    hours_to_show: 12
+    points_per_hour: 4
+    line_width: 2
+    font_size: 75
+    show:
+      labels: true
+      points: false
+
+# ========================================
+# 🎯 CARTE APEX CHARTS (Nécessite HACS: apexcharts-card)
+# ========================================
+# Installez d'abord: https://github.com/RomRider/apexcharts-card
+type: custom:apexcharts-card
+header:
+  show: true
+  title: "🔋 Analyse Batterie 24h"
+  show_states: true
+  colorize_states: true
+graph_span: 24h
+span:
+  start: day
+series:
+  - entity: sensor.{station}_battery_soc
+    name: État de charge
+    type: line
+    color: "#4caf50"
+    stroke_width: 3
+    show:
+      legend_value: true
+  - entity: sensor.{station}_battery_power
+    name: Puissance
+    type: column
+    color: "#2196f3"
+    opacity: 0.5
+    show:
+      legend_value: true
+
+# ========================================
+# 🏠 TABLEAU DE BORD COMPLET
+# ========================================
+# Créez une nouvelle vue "Énergie" et ajoutez toutes les cartes ci-dessus
+# ou utilisez cette configuration complète:
+
+title: Énergie TSUN
+views:
+  - title: Vue d'ensemble
+    path: overview
+    icon: mdi:home-lightning-bolt
+    cards:
+      # Ajoutez ici les cartes "Vue d'ensemble" et "Mini"
+      
+  - title: Production
+    path: production
+    icon: mdi:solar-power
+    cards:
+      # Ajoutez ici la carte "Production Solaire"
+      
+  - title: Batterie
+    path: battery
+    icon: mdi:battery
+    cards:
+      # Ajoutez ici les cartes batterie (simple et complète)
