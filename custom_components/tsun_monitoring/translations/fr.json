@@ -1,0 +1,15 @@
+{
+  "config_flow": {
+    "user": {
+      "title": "Configuration de TSUN Monitoring",
+      "description": "Entrez vos identifiants TSUN",
+      "data": {
+        "username": "Nom d'utilisateur (email)",
+        "password": "Mot de passe"
+      }
+    }
+  },
+  "error": {
+    "cannot_connect": "Impossible de se connecter à l'API TSUN. Vérifiez vos identifiants."
+  }
+}
