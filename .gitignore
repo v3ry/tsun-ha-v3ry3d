@@ -29,3 +29,7 @@ home-assistant.log
 home-assistant_v2.db
 *.db-shm
 *.db-wal
+
+# Exclude personal data files
+data.json
+*.json.bak
