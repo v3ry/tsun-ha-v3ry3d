@@ -1,12 +1,12 @@
 {
   "domain": "tsun_monitoring",
   "name": "TSUN Monitoring",
-  "codeowners": ["@v3ryf"],
+  "codeowners": ["@v3ry3D"],
   "config_flow": true,
   "documentation": "https://github.com/v3ryf/tsun-ha",
   "integration_type": "device",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/v3ryf/tsun-ha/issues",
   "requirements": ["requests==2.31.0"],
-  "version": "1.0.0"
+  "version": "1.0.1"
 }
