@@ -1,13 +1,23 @@
 {
   "config_flow": {
     "user": {
+      "title": "Configuration TSUN Monitoring",
+      "description": "Entrez vos identifiants TSUN Monitoring",
       "data": {
-        "username": "[%key:common::config_flow::data::username%]",
-        "password": "[%key:common::config_flow::data::password%]"
+        "username": "Nom d'utilisateur",
+        "password": "Mot de passe"
+      },
+      "data_description": {
+        "username": "Votre email TSUN",
+        "password": "Votre mot de passe TSUN"
       }
     }
   },
   "error": {
-    "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]"
+    "cannot_connect": "Impossible de se connecter. Vérifiez vos identifiants.",
+    "unknown": "Erreur inconnue"
+  },
+  "abort": {
+    "already_configured": "Ce compte est déjà configuré"
   }
 }

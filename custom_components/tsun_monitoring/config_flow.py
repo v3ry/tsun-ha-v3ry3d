@@ -34,7 +34,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle the initial step."""
         if user_input is None:
             return self.async_show_form(
-                step_id="user", data_schema=STEP_USER_DATA_SCHEMA
+                step_id="user",
+                data_schema=STEP_USER_DATA_SCHEMA,
+                description_placeholders={},
             )
 
         errors = {}
@@ -45,8 +47,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 password=user_input[CONF_PASSWORD],
             )
             await self.hass.async_add_executor_job(api.authenticate)
-        except Exception:  # pylint: disable=broad-except
-            _LOGGER.exception("Unexpected exception")
+        except Exception as err:  # pylint: disable=broad-except
+            _LOGGER.error("Unexpected exception: %s", err)
             errors["base"] = "cannot_connect"
         else:
             await self.async_set_unique_id(user_input[CONF_USERNAME])
@@ -57,5 +59,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         return self.async_show_form(
-            step_id="user", data_schema=STEP_USER_DATA_SCHEMA, errors=errors
+            step_id="user",
+            data_schema=STEP_USER_DATA_SCHEMA,
+            errors=errors,
+            description_placeholders={},
         )
