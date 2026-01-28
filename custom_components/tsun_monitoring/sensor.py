@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
+    PERCENTAGE,
     UnitOfEnergy,
     UnitOfPower,
 )
@@ -24,6 +25,134 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
+SENSOR_TYPES = {
+    # Generation sensors
+    "generation_power": {
+        "name": "Generation Power",
+        "key": "generationPower",
+        "unit": UnitOfPower.WATT,
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    "generation_total": {
+        "name": "Generation Total",
+        "key": "generationTotal",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    "generation_value": {
+        "name": "Generation Value Daily",
+        "key": "generationValue",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    "generation_value_month": {
+        "name": "Generation Month",
+        "key": "generationValueMonth",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    "generation_value_year": {
+        "name": "Generation Year",
+        "key": "generationValueYear",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    # Battery sensors
+    "battery_power": {
+        "name": "Battery Power",
+        "key": "batteryPower",
+        "unit": UnitOfPower.WATT,
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    "battery_soc": {
+        "name": "Battery SOC",
+        "key": "batterySoc",
+        "unit": PERCENTAGE,
+        "device_class": SensorDeviceClass.BATTERY,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    "battery_rated_power": {
+        "name": "Battery Rated Power",
+        "key": "batteryRatedPower",
+        "unit": UnitOfPower.KILO_WATT,
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": None,
+    },
+    "battery_rated_capacity": {
+        "name": "Battery Rated Capacity",
+        "key": "batteryRatedCapacity",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": None,
+    },
+    "charge_value": {
+        "name": "Battery Charge Today",
+        "key": "chargeValue",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    "discharge_value": {
+        "name": "Battery Discharge Today",
+        "key": "dischargeValue",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    "charge_upload_total": {
+        "name": "Battery Charge Total",
+        "key": "chargeUploadTotal",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    "discharge_upload_total": {
+        "name": "Battery Discharge Total",
+        "key": "dischargeUploadTotal",
+        "unit": UnitOfEnergy.KILO_WATT_HOUR,
+        "device_class": SensorDeviceClass.ENERGY,
+        "state_class": SensorStateClass.TOTAL_INCREASING,
+    },
+    # Consumption sensors
+    "use_power": {
+        "name": "Use Power",
+        "key": "usePower",
+        "unit": UnitOfPower.WATT,
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": SensorStateClass.MEASUREMENT,
+    },
+    # System sensors
+    "installed_capacity": {
+        "name": "Installed Capacity",
+        "key": "installedCapacity",
+        "unit": UnitOfPower.KILO_WATT,
+        "device_class": SensorDeviceClass.POWER,
+        "state_class": None,
+    },
+}
+
+TEXT_SENSOR_TYPES = {
+    "network_status": {
+        "name": "Network Status",
+        "key": "networkStatus",
+    },
+    "battery_status": {
+        "name": "Battery Status",
+        "key": "batteryStatus",
+    },
+    "power_system_type": {
+        "name": "Power System Type",
+        "key": "powerSystemType",
+    },
+}
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -33,62 +162,39 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     entities = []
-    for station in coordinator.data:
+    for item in coordinator.data:
+        station = item.get("station", {})
         station_id = station.get("id")
         station_name = station.get("name", "Unknown")
 
-        # Generation Power (current)
-        entities.append(
-            TsunMonitoringSensor(
-                coordinator,
-                station_id,
-                station_name,
-                "generation_power",
-                "Generation Power",
-                UnitOfPower.WATT,
-                SensorDeviceClass.POWER,
-                SensorStateClass.MEASUREMENT,
+        # Add numeric sensors
+        for sensor_type, sensor_config in SENSOR_TYPES.items():
+            entities.append(
+                TsunMonitoringSensor(
+                    coordinator,
+                    station_id,
+                    station_name,
+                    sensor_type,
+                    sensor_config["name"],
+                    sensor_config["key"],
+                    sensor_config["unit"],
+                    sensor_config["device_class"],
+                    sensor_config["state_class"],
+                )
             )
-        )
 
-        # Generation Total (daily)
-        entities.append(
-            TsunMonitoringSensor(
-                coordinator,
-                station_id,
-                station_name,
-                "generation_total",
-                "Generation Total",
-                UnitOfEnergy.KILO_WATT_HOUR,
-                SensorDeviceClass.ENERGY,
-                SensorStateClass.TOTAL_INCREASING,
+        # Add text sensors
+        for sensor_type, sensor_config in TEXT_SENSOR_TYPES.items():
+            entities.append(
+                TsunMonitoringTextSensor(
+                    coordinator,
+                    station_id,
+                    station_name,
+                    sensor_type,
+                    sensor_config["name"],
+                    sensor_config["key"],
+                )
             )
-        )
-
-        # Installed Capacity
-        entities.append(
-            TsunMonitoringSensor(
-                coordinator,
-                station_id,
-                station_name,
-                "installed_capacity",
-                "Installed Capacity",
-                UnitOfPower.KILO_WATT,
-                SensorDeviceClass.POWER,
-                None,
-            )
-        )
-
-        # Network Status
-        entities.append(
-            TsunMonitoringTextSensor(
-                coordinator,
-                station_id,
-                station_name,
-                "network_status",
-                "Network Status",
-            )
-        )
 
     async_add_entities(entities)
 
@@ -103,6 +209,7 @@ class TsunMonitoringSensor(CoordinatorEntity, SensorEntity):
         station_name: str,
         sensor_type: str,
         sensor_name: str,
+        data_key: str,
         unit: str | None,
         device_class: SensorDeviceClass | None,
         state_class: SensorStateClass | None,
@@ -112,6 +219,7 @@ class TsunMonitoringSensor(CoordinatorEntity, SensorEntity):
         self._station_id = station_id
         self._station_name = station_name
         self._sensor_type = sensor_type
+        self._data_key = data_key
         self._attr_name = f"{station_name} {sensor_name}"
         self._attr_unique_id = f"{station_id}_{sensor_type}"
         self._attr_native_unit_of_measurement = unit
@@ -131,32 +239,32 @@ class TsunMonitoringSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        for station in self.coordinator.data:
+        for item in self.coordinator.data:
+            station = item.get("station", {})
             if station.get("id") == self._station_id:
-                if self._sensor_type == "generation_power":
-                    return station.get("generationPower", 0.0)
-                elif self._sensor_type == "generation_total":
-                    return station.get("generationTotal", 0.0)
-                elif self._sensor_type == "installed_capacity":
-                    return station.get("installedCapacity", 0.0)
+                value = station.get(self._data_key)
+                return value if value is not None else 0
         return None
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional attributes."""
-        for station in self.coordinator.data:
+        for item in self.coordinator.data:
+            station = item.get("station", {})
             if station.get("id") == self._station_id:
                 attrs = {
                     "location": station.get("locationAddress"),
                     "power_type": station.get("powerType"),
                     "geography_type": station.get("geographyType"),
                     "operation_type": station.get("operationType"),
+                    "power_system_type": station.get("powerSystemType"),
                     "last_update": station.get("lastUpdateTime"),
+                    "operating": station.get("operating"),
                 }
                 
                 if station.get("lastUpdateTime"):
                     try:
-                        timestamp = station["lastUpdateTime"] / 1000
+                        timestamp = station["lastUpdateTime"]
                         attrs["last_update_formatted"] = datetime.fromtimestamp(
                             timestamp
                         ).isoformat()
@@ -177,12 +285,14 @@ class TsunMonitoringTextSensor(CoordinatorEntity, SensorEntity):
         station_name: str,
         sensor_type: str,
         sensor_name: str,
+        data_key: str,
     ) -> None:
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._station_id = station_id
         self._station_name = station_name
         self._sensor_type = sensor_type
+        self._data_key = data_key
         self._attr_name = f"{station_name} {sensor_name}"
         self._attr_unique_id = f"{station_id}_{sensor_type}"
 
@@ -199,8 +309,8 @@ class TsunMonitoringTextSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        for station in self.coordinator.data:
+        for item in self.coordinator.data:
+            station = item.get("station", {})
             if station.get("id") == self._station_id:
-                if self._sensor_type == "network_status":
-                    return station.get("networkStatus", "Unknown")
+                return station.get(self._data_key, "Unknown")
         return None

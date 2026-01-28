@@ -19,15 +19,22 @@ Cette intégration vous permet de monitorer vos stations solaires TSUN directeme
 
 ### Via HACS (Recommandé)
 
+#### Étape 1 : Ajouter le repository custom
+
 1. Ouvrez HACS dans Home Assistant
-2. Cliquez sur "Integrations"
-3. Cliquez sur le menu (⋮) en haut à droite
-4. Sélectionnez "Custom repositories"
-5. Ajoutez l'URL : `https://github.com/v3ryf/tsun-ha`
-6. Sélectionnez la catégorie "Integration"
-7. Cliquez sur "Add"
-8. Recherchez "TSUN Monitoring" et installez-le
-9. Redémarrez Home Assistant
+2. Cliquez sur **Integrations**
+3. Cliquez sur les **3 points** (⋮) en haut à droite
+4. Sélectionnez **Custom repositories**
+5. Dans le champ "Repository", collez : `https://github.com/v3ryf/tsun-ha`
+6. Dans "Category", sélectionnez **Integration**
+7. Cliquez sur **Add**
+
+#### Étape 2 : Installer l'intégration
+
+1. Cliquez sur le bouton **+ Add Integration** en bas à droite
+2. Recherchez **"TSUN Monitoring"**
+3. Cliquez dessus et sélectionnez **Download**
+4. Redémarrez Home Assistant
 
 ### Installation Manuelle
 
@@ -50,20 +57,53 @@ Cette intégration vous permet de monitorer vos stations solaires TSUN directeme
 
 Pour chaque station, l'intégration créera les capteurs suivants :
 
-| Capteur | Description | Unité | Classe |
-|---------|-------------|-------|--------|
-| `sensor.{station}_generation_power` | Puissance générée actuellement | W | power |
-| `sensor.{station}_generation_total` | Énergie totale produite | kWh | energy |
-| `sensor.{station}_installed_capacity` | Capacité installée | kW | power |
-| `sensor.{station}_network_status` | État de la connexion | - | - |
+### 🌞 Production Solaire
+
+| Capteur | Description | Unité |
+|---------|-------------|-------|
+| `sensor.{station}_generation_power` | Puissance générée actuellement | W |
+| `sensor.{station}_generation_total` | Énergie totale produite | kWh |
+| `sensor.{station}_generation_value_daily` | Production journalière | kWh |
+| `sensor.{station}_generation_month` | Production mensuelle | kWh |
+| `sensor.{station}_generation_year` | Production annuelle | kWh |
+
+### 🔋 Batterie
+
+| Capteur | Description | Unité |
+|---------|-------------|-------|
+| `sensor.{station}_battery_power` | Puissance batterie (+ charge / - décharge) | W |
+| `sensor.{station}_battery_soc` | État de charge | % |
+| `sensor.{station}_battery_status` | Statut (CHARGE/DISCHARGE) | - |
+| `sensor.{station}_battery_charge_today` | Charge aujourd'hui | kWh |
+| `sensor.{station}_battery_discharge_today` | Décharge aujourd'hui | kWh |
+| `sensor.{station}_battery_charge_total` | Charge totale | kWh |
+| `sensor.{station}_battery_discharge_total` | Décharge totale | kWh |
+| `sensor.{station}_battery_rated_power` | Puissance nominale | kW |
+| `sensor.{station}_battery_rated_capacity` | Capacité nominale | kWh |
+
+### ⚡ Consommation
+
+| Capteur | Description | Unité |
+|---------|-------------|-------|
+| `sensor.{station}_use_power` | Consommation actuelle | W |
+
+### ⚙️ Système
+
+| Capteur | Description | Unité |
+|---------|-------------|-------|
+| `sensor.{station}_installed_capacity` | Capacité installée | kW |
+| `sensor.{station}_network_status` | État de la connexion | - |
+| `sensor.{station}_power_system_type` | Type de système | - |
 
 ### Attributs supplémentaires
 
 Chaque capteur inclut des attributs additionnels :
 - `location` : Adresse de la station
 - `power_type` : Type de puissance (ex: "PV")
+- `power_system_type` : Type de système (ex: "GEN_GRID_USE_BTR")
 - `geography_type` : Type géographique (ex: "HOUSE_ROOF")
 - `operation_type` : Type d'opération
+- `operating` : État opérationnel (true/false)
 - `last_update` : Timestamp de la dernière mise à jour
 - `last_update_formatted` : Date formatée de la dernière mise à jour
 
