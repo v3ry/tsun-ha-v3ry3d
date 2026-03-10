@@ -318,6 +318,248 @@ series:
 # 🏠 TABLEAU DE BORD COMPLET
 # ========================================
 # Créez une nouvelle vue "Énergie" et ajoutez toutes les cartes ci-dessus
+
+# ========================================
+# 📈 GRAPHIQUE JOURNÉE (Nouveau capteur Day Graph)
+# ========================================
+# Nécessite: https://github.com/RomRider/apexcharts-card
+# Cette carte lit les attributs du capteur sensor.{station}_day_graph
+type: custom:apexcharts-card
+header:
+  show: true
+  title: "📈 Journée TSUN (App officielle)"
+  show_states: true
+graph_span: 24h
+span:
+  start: day
+now:
+  show: true
+all_series_config:
+  show:
+    legend_value: false
+apex_config:
+  chart:
+    height: 360
+  yaxis:
+    - id: power
+      title:
+        text: "W"
+      decimalsInFloat: 0
+    - id: temp
+      opposite: true
+      title:
+        text: "°C"
+      decimalsInFloat: 1
+series:
+  - entity: sensor.{station}_day_graph
+    name: Consommation
+    yaxis_id: power
+    type: line
+    color: "#1e88e5"
+    stroke_width: 2
+    data_generator: |
+      const points = entity?.attributes?.power_points || [];
+      return points
+        .filter((p) => p.dateTime != null && p.usePower != null)
+        .map((p) => [p.dateTime * 1000, p.usePower]);
+
+  - entity: sensor.{station}_day_graph
+    name: Batterie
+    yaxis_id: power
+    type: line
+    color: "#43a047"
+    stroke_width: 2
+    data_generator: |
+      const points = entity?.attributes?.power_points || [];
+      return points
+        .filter((p) => p.dateTime != null && p.batteryPower != null)
+        .map((p) => [p.dateTime * 1000, p.batteryPower]);
+
+  - entity: sensor.{station}_day_graph
+    name: Réseau achat
+    yaxis_id: power
+    type: line
+    color: "#fb8c00"
+    stroke_width: 2
+    data_generator: |
+      const points = entity?.attributes?.power_points || [];
+      return points
+        .filter((p) => p.dateTime != null && p.buyPower != null)
+        .map((p) => [p.dateTime * 1000, p.buyPower]);
+
+  - entity: sensor.{station}_day_graph
+    name: Température
+    yaxis_id: temp
+    type: area
+    color: "#8e24aa"
+    opacity: 0.2
+    stroke_width: 1
+    data_generator: |
+      const points = entity?.attributes?.weather_points || [];
+      return points
+        .filter((p) => p.datetime != null && p.temp != null)
+        .map((p) => [p.datetime * 1000, p.temp]);
+
+# ========================================
+# 📱 VUE COMPLÈTE TYPE APP TSUN
+# ========================================
+# Nécessite: https://github.com/RomRider/apexcharts-card
+type: vertical-stack
+cards:
+  - type: markdown
+    content: |
+      # ⚡ TSUN Monitoring
+      Vue complète inspirée de l'application officielle
+
+  - type: horizontal-stack
+    cards:
+      - type: tile
+        entity: sensor.{station}_generation_power
+        name: Production
+        icon: mdi:solar-power
+        color: yellow
+      - type: tile
+        entity: sensor.{station}_battery_power
+        name: Batterie
+        icon: mdi:battery
+        color: green
+      - type: tile
+        entity: sensor.{station}_use_power
+        name: Maison
+        icon: mdi:home-lightning-bolt
+        color: blue
+
+  - type: horizontal-stack
+    cards:
+      - type: gauge
+        entity: sensor.{station}_battery_soc
+        name: Batterie
+        min: 0
+        max: 100
+        needle: true
+        severity:
+          green: 60
+          yellow: 30
+          red: 0
+      - type: entities
+        title: État station
+        entities:
+          - entity: sensor.{station}_network_status
+            name: Réseau
+          - entity: sensor.{station}_battery_status
+            name: Batterie
+          - entity: sensor.{station}_power_system_type
+            name: Système
+          - entity: sensor.{station}_day_graph
+            name: Points graphe du jour
+
+  - type: entities
+    title: "📊 Résumé du jour"
+    entities:
+      - entity: sensor.{station}_generation_value_daily
+        name: Production du jour
+      - entity: sensor.{station}_battery_charge_today
+        name: Charge batterie
+      - entity: sensor.{station}_battery_discharge_today
+        name: Décharge batterie
+      - entity: sensor.{station}_generation_total
+        name: Production totale
+      - entity: sensor.{station}_auto_total_running_day_count
+        name: Jours de fonctionnement
+
+  - type: entities
+    title: "🌍 Impact et statut"
+    entities:
+      - entity: sensor.{station}_raw_data
+        type: attribute
+        attribute: station_energy_saved
+        name: Économies énergie / CO2 / arbres
+      - entity: sensor.{station}_raw_data
+        type: attribute
+        attribute: station_status_count
+        name: Compteurs de communication / alertes
+      - entity: sensor.{station}_raw_data
+        type: attribute
+        attribute: station_scene
+        name: Scène station
+      - entity: sensor.{station}_raw_data
+        type: attribute
+        attribute: station_alerts
+        name: Alertes
+
+  - type: entities
+    title: "🔄 Flux courant"
+    entities:
+      - entity: sensor.{station}_day_graph
+        type: attribute
+        attribute: current_flow
+        name: Flux énergétique courant
+
+  - type: custom:apexcharts-card
+    header:
+      show: true
+      title: "📈 Courbes journée"
+      show_states: false
+    graph_span: 24h
+    span:
+      start: day
+    apex_config:
+      chart:
+        height: 320
+      yaxis:
+        - id: power
+          title:
+            text: "W"
+        - id: temp
+          opposite: true
+          title:
+            text: "°C"
+    series:
+      - entity: sensor.{station}_day_graph
+        name: Consommation
+        yaxis_id: power
+        type: line
+        color: "#1e88e5"
+        stroke_width: 2
+        data_generator: |
+          const points = entity?.attributes?.power_points || [];
+          return points
+            .filter((p) => p.dateTime != null && p.usePower != null)
+            .map((p) => [p.dateTime * 1000, p.usePower]);
+      - entity: sensor.{station}_day_graph
+        name: Batterie
+        yaxis_id: power
+        type: line
+        color: "#43a047"
+        stroke_width: 2
+        data_generator: |
+          const points = entity?.attributes?.power_points || [];
+          return points
+            .filter((p) => p.dateTime != null && p.batteryPower != null)
+            .map((p) => [p.dateTime * 1000, p.batteryPower]);
+      - entity: sensor.{station}_day_graph
+        name: Achat réseau
+        yaxis_id: power
+        type: line
+        color: "#fb8c00"
+        stroke_width: 2
+        data_generator: |
+          const points = entity?.attributes?.power_points || [];
+          return points
+            .filter((p) => p.dateTime != null && p.buyPower != null)
+            .map((p) => [p.dateTime * 1000, p.buyPower]);
+      - entity: sensor.{station}_day_graph
+        name: Température
+        yaxis_id: temp
+        type: area
+        color: "#8e24aa"
+        opacity: 0.2
+        stroke_width: 1
+        data_generator: |
+          const points = entity?.attributes?.weather_points || [];
+          return points
+            .filter((p) => p.datetime != null && p.temp != null)
+            .map((p) => [p.datetime * 1000, p.temp]);
 # ou utilisez cette configuration complète:
 
 title: Énergie TSUN

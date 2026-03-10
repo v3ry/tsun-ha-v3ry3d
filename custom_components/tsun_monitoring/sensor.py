@@ -260,6 +260,14 @@ async def async_setup_entry(
             )
         )
 
+        entities.append(
+            TsunMonitoringDayGraphSensor(
+                coordinator,
+                station_id,
+                station_name,
+            )
+        )
+
     async_add_entities(entities)
 
 
@@ -460,9 +468,88 @@ class TsunMonitoringRawDataSensor(CoordinatorEntity, SensorEntity):
         for item in self.coordinator.data:
             station = item.get("station", {})
             if station.get("id") == self._station_id:
-                return {
+                attrs = {
                     key: _normalize_state_value(value)
                     for key, value in station.items()
                     if value is not None
                 }
+
+                extra_sections = {
+                    "station_status_count": item.get("station_status_count"),
+                    "station_manage": item.get("station_manage"),
+                    "station_energy_saved": item.get("station_energy_saved"),
+                    "station_current_flow": item.get("station_current_flow"),
+                    "station_scene": item.get("station_scene"),
+                    "station_alerts": item.get("station_alerts"),
+                    "station_history_day": item.get("station_history_day"),
+                    "station_history_segment_day": item.get("station_history_segment_day"),
+                    "station_history_power_list": item.get("station_history_power_list"),
+                    "weather_day": item.get("weather_day"),
+                }
+
+                for key, value in extra_sections.items():
+                    if value is not None:
+                        attrs[key] = _normalize_state_value(value)
+
+                return attrs
+        return {}
+
+
+class TsunMonitoringDayGraphSensor(CoordinatorEntity, SensorEntity):
+    """Expose station day chart data from official API endpoints."""
+
+    def __init__(self, coordinator, station_id: int, station_name: str) -> None:
+        """Initialize the day graph sensor."""
+        super().__init__(coordinator)
+        self._station_id = station_id
+        self._station_name = station_name
+        self._attr_name = f"{station_name} Day Graph"
+        self._attr_unique_id = f"{station_id}_day_graph"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:chart-timeline-variant"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information."""
+        return {
+            "identifiers": {(DOMAIN, self._station_id)},
+            "name": self._station_name,
+            "manufacturer": "TSUN",
+            "model": "Solar Station",
+        }
+
+    @property
+    def native_value(self):
+        """Return point count to quickly verify graph payload availability."""
+        for item in self.coordinator.data:
+            station = item.get("station", {})
+            if station.get("id") == self._station_id:
+                points = item.get("station_history_power_list", [])
+                return len(points)
+        return 0
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return daily summary, power points and weather points."""
+        for item in self.coordinator.data:
+            station = item.get("station", {})
+            if station.get("id") == self._station_id:
+                power_points = item.get("station_history_power_list", [])
+                weather_points = item.get("weather_day", [])
+                day_summary = item.get("station_history_day") or {}
+                segment_day = item.get("station_history_segment_day") or {}
+
+                attrs = {
+                    "day_summary": day_summary,
+                    "power_points": power_points,
+                    "weather_points": weather_points,
+                    "segment_day": segment_day,
+                    "last_point": power_points[-1] if power_points else None,
+                    "current_flow": item.get("station_current_flow") or {},
+                    "energy_saved": item.get("station_energy_saved") or {},
+                    "status_count": item.get("station_status_count") or {},
+                    "scene": item.get("station_scene"),
+                    "alerts": item.get("station_alerts") or {},
+                }
+                return {k: v for k, v in attrs.items() if v is not None}
         return {}

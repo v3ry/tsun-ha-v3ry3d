@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.3.0] - 2026-03-10
+
+### Ajouté
+- Analyse détaillée des captures HAR pour exposer plus de données de l'application officielle
+- Récupération de l'historique journalier des courbes (`stationStatisticDay`, `stationStatisticPowerList`, `stationStatisticSegmentDay`)
+- Récupération de la météo journalière utilisée par le graphique de l'application
+- Récupération des informations complémentaires de station
+  - statut global de communication et d'alertes
+  - détails de gestion de station
+  - métriques d'impact énergétique (CO2, arbres, charbon économisé)
+  - flux courant de la journée
+  - scène de station
+  - liste d'alertes
+- Nouveau capteur diagnostic `Day Graph` pour exploiter les courbes dans Lovelace
+- Exemples Lovelace enrichis avec une vue complète inspirée de l'application TSUN
+
+### Changé
+- Le capteur `Raw Data` expose désormais aussi les blocs complémentaires récupérés depuis les endpoints observés dans les HAR
+- La documentation Lovelace référence les nouvelles données et la vue complète type application
+
 ## [1.2.0] - 2026-03-10
 
 ### Ajouté
