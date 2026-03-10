@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0] - 2026-03-10
+
+### Ajouté
+- Reconnexion propre quand le token expire
+  - Tentative de refresh token automatique
+  - Fallback sur authentification complète si refresh échoue
+  - Retry unique de la requête après reconnexion
+- Exposition étendue des données station
+  - Capteurs dynamiques créés pour les champs API non mappés
+  - Capteur diagnostic "Raw Data" par station avec payload complet en attributs
+
+### Changé
+- Gestion de session API plus robuste pour éviter les erreurs prolongées après expiration
+
 ## [1.1.0] - 2026-01-28
 
 ### Ajouté

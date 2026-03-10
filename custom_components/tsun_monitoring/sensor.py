@@ -1,8 +1,10 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
+import json
 from datetime import datetime
 import logging
+import re
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -17,6 +19,7 @@ from homeassistant.const import (
     UnitOfPower,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -153,6 +156,37 @@ TEXT_SENSOR_TYPES = {
 }
 
 
+AUTO_EXCLUDED_KEYS = {
+    "id",
+    "name",
+}
+
+
+def _prettify_key(key: str) -> str:
+    """Convert API keys to readable sensor names."""
+    words = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", key)
+    return words.replace("_", " ").title()
+
+
+def _normalize_state_value(value: Any) -> Any:
+    """Normalize API values to Home Assistant compatible sensor states."""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=True, separators=(",", ":"))
+    if value is None:
+        return None
+    return value
+
+
+def _collect_station_keys(data: list[dict[str, Any]]) -> set[str]:
+    """Collect every key available in station payloads."""
+    keys: set[str] = set()
+    for item in data:
+        station = item.get("station", {})
+        if isinstance(station, dict):
+            keys.update(station.keys())
+    return keys
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -162,6 +196,12 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][config_entry.entry_id]
 
     entities = []
+    all_station_keys = _collect_station_keys(coordinator.data)
+    predefined_keys = {
+        *(sensor["key"] for sensor in SENSOR_TYPES.values()),
+        *(sensor["key"] for sensor in TEXT_SENSOR_TYPES.values()),
+    }
+
     for item in coordinator.data:
         station = item.get("station", {})
         station_id = station.get("id")
@@ -195,6 +235,30 @@ async def async_setup_entry(
                     sensor_config["key"],
                 )
             )
+
+        # Add dynamic sensors for every remaining field from the API payload.
+        for data_key in sorted(all_station_keys):
+            if data_key in predefined_keys or data_key in AUTO_EXCLUDED_KEYS:
+                continue
+
+            entities.append(
+                TsunMonitoringDynamicSensor(
+                    coordinator,
+                    station_id,
+                    station_name,
+                    f"auto_{data_key}",
+                    _prettify_key(data_key),
+                    data_key,
+                )
+            )
+
+        entities.append(
+            TsunMonitoringRawDataSensor(
+                coordinator,
+                station_id,
+                station_name,
+            )
+        )
 
     async_add_entities(entities)
 
@@ -314,3 +378,91 @@ class TsunMonitoringTextSensor(CoordinatorEntity, SensorEntity):
             if station.get("id") == self._station_id:
                 return station.get(self._data_key, "Unknown")
         return None
+
+
+class TsunMonitoringDynamicSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a dynamic TSUN Monitoring Sensor."""
+
+    def __init__(
+        self,
+        coordinator,
+        station_id: int,
+        station_name: str,
+        sensor_type: str,
+        sensor_name: str,
+        data_key: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._station_id = station_id
+        self._station_name = station_name
+        self._sensor_type = sensor_type
+        self._data_key = data_key
+        self._attr_name = f"{station_name} {sensor_name}"
+        self._attr_unique_id = f"{station_id}_{sensor_type}"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information."""
+        return {
+            "identifiers": {(DOMAIN, self._station_id)},
+            "name": self._station_name,
+            "manufacturer": "TSUN",
+            "model": "Solar Station",
+        }
+
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        for item in self.coordinator.data:
+            station = item.get("station", {})
+            if station.get("id") == self._station_id:
+                return _normalize_state_value(station.get(self._data_key))
+        return None
+
+
+class TsunMonitoringRawDataSensor(CoordinatorEntity, SensorEntity):
+    """Representation of a station raw payload sensor."""
+
+    def __init__(self, coordinator, station_id: int, station_name: str) -> None:
+        """Initialize the raw data sensor."""
+        super().__init__(coordinator)
+        self._station_id = station_id
+        self._station_name = station_name
+        self._attr_name = f"{station_name} Raw Data"
+        self._attr_unique_id = f"{station_id}_raw_data"
+        self._attr_entity_category = EntityCategory.DIAGNOSTIC
+        self._attr_icon = "mdi:database"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Return device information."""
+        return {
+            "identifiers": {(DOMAIN, self._station_id)},
+            "name": self._station_name,
+            "manufacturer": "TSUN",
+            "model": "Solar Station",
+        }
+
+    @property
+    def native_value(self):
+        """Return a compact primary state for the raw data sensor."""
+        for item in self.coordinator.data:
+            station = item.get("station", {})
+            if station.get("id") == self._station_id:
+                return station.get("operating", "unknown")
+        return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Expose the full station payload as sensor attributes."""
+        for item in self.coordinator.data:
+            station = item.get("station", {})
+            if station.get("id") == self._station_id:
+                return {
+                    key: _normalize_state_value(value)
+                    for key, value in station.items()
+                    if value is not None
+                }
+        return {}

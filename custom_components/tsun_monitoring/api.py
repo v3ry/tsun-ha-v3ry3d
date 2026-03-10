@@ -73,10 +73,70 @@ class TsunMonitoringAPI:
             _LOGGER.error("Authentication failed: %s", err)
             raise
 
+    def refresh_access_token(self) -> bool:
+        """Refresh the access token using the refresh token."""
+        if not self.refresh_token:
+            return False
+
+        headers = {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "Accept-Encoding": "gzip",
+            "Connection": "Keep-Alive",
+            "Host": "pro.talent-monitoring.com",
+            "log-channel": "android",
+            "log-client-inner-version": "18",
+            "log-client-version": "1.0.15",
+            "log-lan": "fr",
+            "log-platform-code": "TSUN",
+            "log-system-version": "9",
+            "User-Agent": "okhttp/4.9.3",
+        }
+
+        data = {
+            "grant_type": "refresh_token",
+            "refresh_token": self.refresh_token,
+            "client_id": CLIENT_ID,
+            "identity_type": IDENTITY_TYPE,
+            "system": SYSTEM,
+        }
+
+        try:
+            response = self.session.post(
+                API_AUTH_URL,
+                headers=headers,
+                data=data,
+                timeout=30,
+            )
+            response.raise_for_status()
+
+            json_data = response.json()
+            self.access_token = json_data.get("access_token")
+            self.refresh_token = json_data.get("refresh_token", self.refresh_token)
+
+            if not self.access_token:
+                _LOGGER.warning("Token refresh response did not include access_token")
+                return False
+
+            _LOGGER.info("Token refresh successful")
+            return True
+
+        except requests.exceptions.RequestException as err:
+            _LOGGER.warning("Token refresh failed: %s", err)
+            return False
+
+    def _ensure_authenticated(self) -> None:
+        """Ensure an access token is available."""
+        if self.access_token:
+            return
+
+        if self.refresh_access_token():
+            return
+
+        self.authenticate()
+
     def get_stations(self) -> list[dict[str, Any]]:
         """Get all stations data."""
-        if not self.access_token:
-            self.authenticate()
+        self._ensure_authenticated()
 
         headers = {
             "Accept-Encoding": "gzip",
@@ -122,14 +182,32 @@ class TsunMonitoringAPI:
                 params=params,
                 timeout=30,
             )
+
+            # Access token may have expired between two coordinator updates.
+            if response.status_code == 401:
+                _LOGGER.info("Access token expired, trying to re-authenticate")
+                self.access_token = None
+
+                if not self.refresh_access_token():
+                    self.authenticate()
+
+                headers["authorization"] = f"bearer {self.access_token}"
+                response = self.session.post(
+                    API_STATION_URL,
+                    headers=headers,
+                    json=body,
+                    params=params,
+                    timeout=30,
+                )
+
             response.raise_for_status()
-            
+
             json_data = response.json()
             stations = json_data.get("data", [])
-            
+
             _LOGGER.info("Retrieved %d stations", len(stations))
             return stations
-            
+
         except requests.exceptions.RequestException as err:
             _LOGGER.error("Failed to get stations: %s", err)
             raise
