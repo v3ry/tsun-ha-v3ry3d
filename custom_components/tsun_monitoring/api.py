@@ -1,11 +1,12 @@
 """API client for TSUN Monitoring."""
 from __future__ import annotations
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from typing import Any
 
 import requests
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from .const import (
     API_AUTH_URL,
@@ -29,10 +30,11 @@ _LOGGER = logging.getLogger(__name__)
 class TsunMonitoringAPI:
     """API client for TSUN Monitoring."""
 
-    def __init__(self, username: str, password: str) -> None:
+    def __init__(self, username: str, password: str, timeout: int = 30) -> None:
         """Initialize the API client."""
         self.username = username
         self.password = password
+        self.timeout = timeout
         self.access_token: str | None = None
         self.refresh_token: str | None = None
         self.session = requests.Session()
