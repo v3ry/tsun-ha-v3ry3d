@@ -70,4 +70,5 @@ class TsunMonitoringCoordinator(DataUpdateCoordinator):
         try:
             return await self.hass.async_add_executor_job(self.api.get_stations)
         except Exception as err:
-            raise UpdateFailed(f"Error communicating with API: {err}") from err
+            _LOGGER.warning("Erreur réseau TSUN: %s", err)
+            raise UpdateFailed(f"Erreur de communication avec l'API TSUN: {err}") from err
